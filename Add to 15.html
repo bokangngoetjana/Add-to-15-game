@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Add to 15</title>
+    <meta charset="UTF-8" />
+    <style>
+      span {
+        position: absolute;
+        top: 180px;
+        border-style: solid;
+        color: white;
+        border-radius: 25px;
+        background-color: purple;
+        padding: 5px;
+        cursor: pointer;
+      }
+      #status {
+        color: black;
+        font-size: x-large;
+      }
+    </style>
+
+    <script language="JavaScript">
+      var statusref;
+      var numbers = []; //holds references to the 9 span elements representing numbers in the setUpBoard function.
+      var game = true;
+
+      var player = [];
+      var computer = [];
+      var board = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+      var wedge = 50;
+      var startx = 15;
+
+      //groups array holds the possible combinations adding up to 15
+      var groups = [
+        " ", //placeholder not used
+        "3 4 8",
+        "1 5 9",
+        "2 6 7",
+        "1 6 8",
+        "3 5 7",
+        "2 4 9",
+        "2 5 8",
+        "4 5 6",
+      ];
+      //The occupied array is used to indicate which groups each value from 0 - 9 belongs to
+
+      var occupied = [
+        [2, 4],
+        [3, 6, 7],
+        [1, 5],
+        [1, 6, 8],
+        [2, 5, 7, 8],
+        [3, 4, 8],
+        [3, 5],
+        [1, 4, 7],
+        [2, 6],
+      ];
+
+      //these keep track of how close the player and "the computer" are to completing each of the 8 combinations
+      var pgroupcount = [0, 0, 0, 0, 0, 0, 0, 0, 0]; //unused first slot
+      var cgroupcount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+      function init() {
+        setUpBoard();
+
+        statusref = document.getElementById("status");
+      }
+      //SMARTCHOICE USES ARRAYS TO GO THROUGH THE FOLLOWING
+      //...
+      //checks if there's still numbers on the board(board[] array) that would win the game for the computer?
+      //if an immediate win is not possible, is there any number on the board that would mean an immediate win by the player?
+      //..if so, play that number to block the player
+      //Assuming that an immediate block is not required, is there any group with one element already played by the computer
+      //.., and neither of the other two played by the player? If so, take one of the two available numbers.
+      //Assuming none of the previous cases apply, and 5 is available, take it.
+      //Assuming none of the previous cases apply, take an even number
+      //Make a random choie from among numbers remaining
+      function smartChoice() {
+        var board1 = board.length;
+
+        for (var i = 0; i < board1; i++) {
+          var possible = board[i];
+
+          for (var j = 0; j < occupied[possible - 1].length; j++) {
+            if (cgroupcount[occupied[possible - 1][j]] == 2) {
+              return i;
+            }
+          }
+        }
+        /*  for (var i = 0; i < board1; i++) {
+          var blocker = board[i];
+
+          for (var j = 0; j < occupied[blocker - 1].length; j++) {
+            if (pgroupcount[occupied[blocker - 1][j]] == 2) {
+              return i;
+            }
+          }
+        }*/
+
+        for (var i = 0; i < board1; i++) {
+          var possible = board[i];
+
+          for (var j = 0; j < occupied[possible - 1].length; j++) {
+            var whatgroup = occupied[possible - 1][j];
+
+            if (cgroupcount[whatgroup] == 1 && pgroupcount[whatgroup] == 0) {
+              return i;
+            }
+          }
+        }
+
+        /*for (var i = 0; i < board1; i++) {
+          if (board[i] == 5) {
+            return i;
+          }
+        }*/
+
+        for (var i = 0; i < board1; i++) {
+          if (0 == board[i] % 2) {
+            return i;
+          }
+        }
+        //
+
+        var ch = Math.floor(Math.random(0, board1));
+        return ch;
+      }
+
+      //invokes the smart choice function
+      function computerMove() {
+        if (board.length < 1) {
+          statusref.innerHTML = "Player wins!";
+          return;
+        }
+
+        var which = smartChoice();
+        var n = board[which]; //n is an extra attribute to save the specific number
+        take(n);
+
+        numbers[n - 1].style.top = "150px";
+        numbers[n - 1].removeEventListener("click", addToPlayer);
+        computer.push(n);
+
+        //holder is set to hold groups containing the number. The occupied[] array holding the 'information'.
+        var holder = occupied[n - 1];
+
+        for (var i = 0; i < holder.length; i++) {
+          cgroupcount[holder[i]]++;
+
+          if (cgroupcount[holder[i]] == 3) {
+            statusref.innerHTML = "Computer wins with " + groups[holder[i]];
+
+            game = false;
+            return;
+          }
+        }
+
+        if (board.length < 1) {
+          statusref.innerHTML = "Player wins";
+        } else {
+          game = true;
+        }
+      }
+
+      //setUpBoard function creates the 9 span elementsthat represent the 9 numbers
+      function setUpBoard() {
+        var dv;
+        var xpos;
+
+        for (var i = 1; i < 10; i++) {
+          dv = document.createElement("span");
+          dv.addEventListener("click", addToPlayer, false);
+          dv.innerHTML = i.toString();
+
+          xpos = startx + i * wedge;
+          dv.style.left = xpos.toString() + "px";
+          dv.style.top = "240px";
+          document.body.appendChild(dv);
+          dv.n = i;
+          numbers.push(dv);
+        }
+      }
+      //the function take removes the element/number from the board array.
+      function take(n) {
+        var nAt = board.indexOf(n);
+
+        if (nAt > -1) {
+          board.splice(nAt, 1);
+        }
+      }
+
+      //the number selected is added to the player[] array.
+      function addToPlayer(ev) {
+        if (game) {
+          var nn = ev.target.n;
+
+          //the event of clicking on a piece is stopped.
+          //This prevents the player from clicking on a piece that has already been taken by the player.
+          ev.target.removeEventListener("click", addToPlayer);
+          player.push(nn);
+
+          numbers[nn - 1].style.top = "350px";
+          take(nn);
+
+          var holder = occupied[nn - 1];
+
+          for (i = 0; i < holder.length; i++) {
+            pgroupcount[holder[i]]++;
+
+            if (pgroupcount[holder[i]] == 3) {
+              statusref.innerHTML = "Player wins with " + groups[holder[i]];
+
+              game = false;
+              return;
+            } else {
+              statusref.innerHTML = "No one won...keep playing";
+            }
+          }
+          game = false;
+          setTimeout(computerMove, 1000);
+        } else {
+          statusref.innerHTML = "Reload for new game.";
+        }
+      }
+    </script>
+
+    <body onLoad="init();">
+      <h1>Player against Computer</h1>
+      <br />
+      Player goes first: click on number. First to have a set of 3 adding to 15
+      wins. Reload for new game.
+
+      <p>
+        Computer
+        <br /><br /><br />
+      </p>
+      <hr />
+      board
+      <br /><br /><br /><br />
+      <hr />
+      Player
+      <br />
+      <br />
+      <br />
+      <br />
+      <br />
+      <hr />
+      <div id="status"></div>
+    </body>
+  </head>
+</html>
